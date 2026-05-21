@@ -1,0 +1,56 @@
+import express from 'express'
+import supabase from '../supabase.js'
+
+const router = express.Router()
+
+// GET statistik per elev
+router.get('/stats/all', async (req, res) => {
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('status, pupils(full_name, class)')
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  const stats = {}
+  for (const row of data) {
+    const name = row.pupils.full_name
+    if (!stats[name]) {
+      stats[name] = { name, class: row.pupils.class, present: 0, absent: 0, late: 0, total: 0 }
+    }
+    stats[name][row.status]++
+    stats[name].total++
+  }
+
+  res.json(Object.values(stats))
+})
+
+// GET närvaro per datum
+router.get('/:date', async (req, res) => {
+  const { date } = req.params
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('*, pupils(full_name, class)')
+    .eq('date', date)
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data)
+})
+
+// POST registrera närvaro
+router.post('/', async (req, res) => {
+  const { pupil_id, teacher_id, date, status } = req.body
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .upsert({ pupil_id, teacher_id, date, status }, { onConflict: 'pupil_id,date' })
+    .select()
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.status(201).json(data)
+})
+
+
+
+export default router

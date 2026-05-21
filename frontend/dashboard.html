@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Närvaro – Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --card: #181c27;
+      --border: #2a2f3f;
+      --accent: #4f8ef7;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --present: #34d399;
+      --absent: #f87171;
+      --late: #fbbf24;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.2;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* NAV */
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15,17,23,0.85);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-logo span { font-size: 20px; }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 7px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); background: var(--border); }
+    .nav-links a.active { color: var(--accent); background: rgba(79,142,247,0.1); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-user {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover { border-color: var(--absent); color: var(--absent); }
+
+    /* MAIN */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .page-header p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* STAT CARDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card:nth-child(3) { animation-delay: 0.2s; }
+    .stat-card:nth-child(4) { animation-delay: 0.3s; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .stat-value.present { color: var(--present); }
+    .stat-value.absent  { color: var(--absent); }
+    .stat-value.late    { color: var(--late); }
+
+    /* TABLE */
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(42,47,63,0.5);
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    td {
+      padding: 13px 16px;
+      font-size: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.present { background: rgba(52,211,153,0.15); color: var(--present); }
+    .badge.absent  { background: rgba(248,113,113,0.15); color: var(--absent); }
+    .badge.late    { background: rgba(251,191,36,0.15);  color: var(--late); }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      width: 100px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--present);
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    .loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px;
+      font-size: 14px;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">
+      <span>📋</span> NÄRVARO
+    </div>
+    <div class="nav-links">
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="attendance.html">Närvaro</a>
+      <a href="pupils.html">Elever</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user" id="navUser"></span>
+      <button class="btn-logout" onclick="logout()">Logga ut</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <p>Översikt och statistik för alla elever</p>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Totalt elever</div>
+        <div class="stat-value" id="statTotal">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Närvarande idag</div>
+        <div class="stat-value present" id="statPresent">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Frånvarande idag</div>
+        <div class="stat-value absent" id="statAbsent">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sent idag</div>
+        <div class="stat-value late" id="statLate">–</div>
+      </div>
+    </div>
+
+    <!-- Närvaro per elev -->
+    <div class="section-title">📊 Närvaro per elev (totalt)</div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Elev</th>
+            <th>Klass</th>
+            <th>Närvarande</th>
+            <th>Frånvarande</th>
+            <th>Sent</th>
+            <th>Närvaro %</th>
+          </tr>
+        </thead>
+        <tbody id="statsTable">
+          <tr><td colspan="6" class="loading">Laddar statistik...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script type="module">
+    import { getAttendanceStats, getPupils, getAttendanceByDate } from './api.js'
+
+    // Skyddad sida – kolla om inloggad
+    if (!sessionStorage.getItem('loggedIn')) {
+      window.location.href = '../index.html'
+    }
+
+    document.getElementById('navUser').textContent = sessionStorage.getItem('username') || ''
+
+    const today = new Date().toISOString().split('T')[0]
+
+    async function loadDashboard() {
+      try {
+        const [pupils, todayAttendance, stats] = await Promise.all([
+          getPupils(),
+          getAttendanceByDate(today),
+          getAttendanceStats()
+        ])
+
+        // Stat cards
+        document.getElementById('statTotal').textContent = pupils.length
+        document.getElementById('statPresent').textContent =
+          todayAttendance.filter(a => a.status === 'present').length
+        document.getElementById('statAbsent').textContent =
+          todayAttendance.filter(a => a.status === 'absent').length
+        document.getElementById('statLate').textContent =
+          todayAttendance.filter(a => a.status === 'late').length
+
+        // Stats table
+        const tbody = document.getElementById('statsTable')
+        if (stats.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty">Ingen närvaro registrerad ännu</td></tr>'
+          return
+        }
+
+        tbody.innerHTML = stats.map(s => {
+          const pct = s.total > 0 ? Math.round((s.present / s.total) * 100) : 0
+          return `
+            <tr>
+              <td>${s.name}</td>
+              <td>${s.class}</td>
+              <td><span class="badge present">${s.present}</span></td>
+              <td><span class="badge absent">${s.absent}</span></td>
+              <td><span class="badge late">${s.late}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width:${pct}%"></div>
+                  </div>
+                  <span style="font-size:13px;color:var(--muted)">${pct}%</span>
+                </div>
+              </td>
+            </tr>
+          `
+        }).join('')
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    window.logout = function() {
+      sessionStorage.clear()
+      window.location.href = '../index.html'
+    }
+
+    loadDashboard()
+  </script>
+</body>
+</html>

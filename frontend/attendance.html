@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Närvaro – Registrera</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --card: #181c27;
+      --border: #2a2f3f;
+      --accent: #4f8ef7;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --present: #34d399;
+      --absent: #f87171;
+      --late: #fbbf24;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.2;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15,17,23,0.85);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-logo span { font-size: 20px; }
+
+    .nav-links { display: flex; gap: 8px; }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 7px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover  { color: var(--text); background: var(--border); }
+    .nav-links a.active { color: var(--accent); background: rgba(79,142,247,0.1); }
+
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+
+    .nav-user {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover { border-color: var(--absent); color: var(--absent); }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .page-header h1 { font-size: 28px; font-weight: 700; }
+    .page-header p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    .date-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .date-picker label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .date-picker input[type="date"] {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .date-picker input[type="date"]:focus {
+      border-color: var(--accent);
+    }
+
+    /* Filter klass */
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover  { color: var(--text); border-color: var(--accent); }
+    .filter-btn.active { background: rgba(79,142,247,0.15); border-color: var(--accent); color: var(--accent); }
+
+    /* Elev-lista */
+    .pupils-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pupil-row {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      animation: fadeIn 0.3s ease both;
+      transition: border-color 0.2s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .pupil-row.saved { border-color: var(--present); }
+
+    .pupil-info { display: flex; flex-direction: column; gap: 2px; }
+    .pupil-name { font-size: 15px; font-weight: 600; }
+    .pupil-class { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+    .status-btns { display: flex; gap: 8px; }
+
+    .status-btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .status-btn:hover { opacity: 0.85; }
+
+    .status-btn.present.selected {
+      background: rgba(52,211,153,0.15);
+      border-color: var(--present);
+      color: var(--present);
+    }
+
+    .status-btn.absent.selected {
+      background: rgba(248,113,113,0.15);
+      border-color: var(--absent);
+      color: var(--absent);
+    }
+
+    .status-btn.late.selected {
+      background: rgba(251,191,36,0.15);
+      border-color: var(--late);
+      color: var(--late);
+    }
+
+    .save-indicator {
+      font-size: 12px;
+      color: var(--present);
+      font-family: 'DM Mono', monospace;
+      min-width: 50px;
+      text-align: right;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .save-indicator.show { opacity: 1; }
+
+    .save-all-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      z-index: 100;
+    }
+
+    .save-all-bar span {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .btn-save-all {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-save-all:hover { opacity: 0.9; }
+    .btn-save-all:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 60px;
+      font-size: 14px;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 60px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo"><span>📋</span> NÄRVARO</div>
+    <div class="nav-links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="attendance.html" class="active">Närvaro</a>
+      <a href="pupils.html">Elever</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user" id="navUser"></span>
+      <button class="btn-logout" onclick="logout()">Logga ut</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <div>
+        <h1>Registrera närvaro</h1>
+        <p>Välj status för varje elev och spara</p>
+      </div>
+      <div class="date-picker">
+        <label>Datum</label>
+        <input type="date" id="datePicker"/>
+      </div>
+    </div>
+
+    <div class="filters" id="classFilters">
+      <button class="filter-btn active" onclick="filterClass('all', this)">Alla</button>
+    </div>
+
+    <div class="pupils-list" id="pupilsList">
+      <div class="loading">Laddar elever...</div>
+    </div>
+  </main>
+
+  <div class="save-all-bar">
+    <span id="saveStatus">Välj status för elever</span>
+    <button class="btn-save-all" id="saveAllBtn" onclick="saveAll()">Spara alla</button>
+  </div>
+
+  <script type="module">
+    import { getPupils, getTeachers, markAttendance, getAttendanceByDate } from './api.js'
+
+    if (!sessionStorage.getItem('loggedIn')) {
+      window.location.href = '../index.html'
+    }
+
+    document.getElementById('navUser').textContent = sessionStorage.getItem('username') || ''
+
+    // Sätt dagens datum som default
+    const datePicker = document.getElementById('datePicker')
+    datePicker.value = new Date().toISOString().split('T')[0]
+    datePicker.addEventListener('change', loadPupils)
+
+    let allPupils = []
+    let teachers = []
+    let attendanceMap = {}   // pupil_id → status
+    let selectedClass = 'all'
+
+    async function loadPupils() {
+      const date = datePicker.value
+      document.getElementById('pupilsList').innerHTML = '<div class="loading">Laddar elever...</div>'
+
+      try {
+        const [pupils, teacherList, existing] = await Promise.all([
+          getPupils(),
+          getTeachers(),
+          getAttendanceByDate(date)
+        ])
+
+        allPupils = pupils
+        teachers = teacherList
+
+        // Bygg map över befintlig närvaro
+        attendanceMap = {}
+        for (const a of existing) {
+          attendanceMap[a.pupil_id] = a.status
+        }
+
+        // Bygg klassfilter
+        const classes = [...new Set(pupils.map(p => p.class))].sort()
+        const filtersEl = document.getElementById('classFilters')
+        filtersEl.innerHTML = `<button class="filter-btn active" onclick="filterClass('all', this)">Alla</button>`
+        classes.forEach(c => {
+          const btn = document.createElement('button')
+          btn.className = 'filter-btn'
+          btn.textContent = c
+          btn.onclick = () => filterClass(c, btn)
+          filtersEl.appendChild(btn)
+        })
+
+        renderPupils()
+      } catch (err) {
+        document.getElementById('pupilsList').innerHTML = '<div class="empty">Kunde inte ladda elever.</div>'
+        console.error(err)
+      }
+    }
+
+    function renderPupils() {
+      const filtered = selectedClass === 'all'
+        ? allPupils
+        : allPupils.filter(p => p.class === selectedClass)
+
+      if (filtered.length === 0) {
+        document.getElementById('pupilsList').innerHTML = '<div class="empty">Inga elever hittades.</div>'
+        return
+      }
+
+      document.getElementById('pupilsList').innerHTML = filtered.map((p, i) => {
+        const current = attendanceMap[p.id] || null
+        return `
+          <div class="pupil-row ${current ? 'saved' : ''}" id="row-${p.id}" style="animation-delay:${i * 0.04}s">
+            <div class="pupil-info">
+              <span class="pupil-name">${p.full_name}</span>
+              <span class="pupil-class">${p.class}</span>
+            </div>
+            <div class="status-btns">
+              <button class="status-btn present ${current === 'present' ? 'selected' : ''}"
+                onclick="selectStatus('${p.id}', 'present', this)">Närvarande</button>
+              <button class="status-btn late ${current === 'late' ? 'selected' : ''}"
+                onclick="selectStatus('${p.id}', 'late', this)">Sent</button>
+              <button class="status-btn absent ${current === 'absent' ? 'selected' : ''}"
+                onclick="selectStatus('${p.id}', 'absent', this)">Frånvarande</button>
+            </div>
+            <div class="save-indicator ${current ? 'show' : ''}" id="ind-${p.id}">✓ Sparat</div>
+          </div>
+        `
+      }).join('')
+
+      updateSaveStatus()
+    }
+
+    window.filterClass = function(cls, btn) {
+      selectedClass = cls
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      renderPupils()
+    }
+
+    window.selectStatus = function(pupilId, status, btn) {
+      // Uppdatera UI
+      const row = document.getElementById(`row-${pupilId}`)
+      row.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected'))
+      btn.classList.add('selected')
+
+      attendanceMap[pupilId] = status
+      updateSaveStatus()
+    }
+
+    function updateSaveStatus() {
+      const total = allPupils.length
+      const marked = Object.keys(attendanceMap).length
+      document.getElementById('saveStatus').textContent =
+        `${marked} av ${total} elever markerade`
+    }
+
+    window.saveAll = async function() {
+      const date = datePicker.value
+      const btn = document.getElementById('saveAllBtn')
+      const teacher = teachers[0] // Använd första läraren
+
+      btn.disabled = true
+      btn.textContent = 'Sparar...'
+
+      try {
+        const promises = Object.entries(attendanceMap).map(([pupil_id, status]) =>
+          markAttendance(pupil_id, teacher?.id, date, status)
+        )
+        await Promise.all(promises)
+
+        // Visa sparat på alla rader
+        Object.keys(attendanceMap).forEach(id => {
+          const ind = document.getElementById(`ind-${id}`)
+          const row = document.getElementById(`row-${id}`)
+          if (ind) { ind.classList.add('show') }
+          if (row) { row.classList.add('saved') }
+        })
+
+        btn.textContent = '✓ Sparat!'
+        setTimeout(() => {
+          btn.disabled = false
+          btn.textContent = 'Spara alla'
+        }, 2000)
+      } catch (err) {
+        console.error(err)
+        btn.disabled = false
+        btn.textContent = 'Försök igen'
+      }
+    }
+
+    window.logout = function() {
+      sessionStorage.clear()
+      window.location.href = '../index.html'
+    }
+
+    loadPupils()
+  </script>
+</body>
+</html>
