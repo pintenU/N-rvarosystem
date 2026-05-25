@@ -48,10 +48,10 @@ export async function getAttendanceByDate(date) {
   return request(`/attendance/${date}`)
 }
 
-export async function markAttendance(pupil_id, teacher_id, date, status) {
+export async function markAttendance(pupil_id, teacher_id, date, status, minutes_late = null) {
   return request('/attendance', {
     method: 'POST',
-    body: JSON.stringify({ pupil_id, teacher_id, date, status })
+    body: JSON.stringify({ pupil_id, teacher_id, date, status, minutes_late })
   })
 }
 

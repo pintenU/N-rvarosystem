@@ -62,7 +62,6 @@
     }
 
     .nav-logo span { font-size: 20px; }
-
     .nav-links { display: flex; gap: 8px; }
 
     .nav-links a {
@@ -144,11 +143,8 @@
       cursor: pointer;
     }
 
-    .date-picker input[type="date"]:focus {
-      border-color: var(--accent);
-    }
+    .date-picker input[type="date"]:focus { border-color: var(--accent); }
 
-    /* Filter klass */
     .filters {
       display: flex;
       gap: 8px;
@@ -172,7 +168,6 @@
     .filter-btn:hover  { color: var(--text); border-color: var(--accent); }
     .filter-btn.active { background: rgba(79,142,247,0.15); border-color: var(--accent); color: var(--accent); }
 
-    /* Elev-lista */
     .pupils-list {
       display: flex;
       flex-direction: column;
@@ -190,6 +185,7 @@
       gap: 16px;
       animation: fadeIn 0.3s ease both;
       transition: border-color 0.2s;
+      flex-wrap: wrap;
     }
 
     @keyframes fadeIn {
@@ -199,7 +195,7 @@
 
     .pupil-row.saved { border-color: var(--present); }
 
-    .pupil-info { display: flex; flex-direction: column; gap: 2px; }
+    .pupil-info { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
     .pupil-name { font-size: 15px; font-weight: 600; }
     .pupil-class { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
 
@@ -238,6 +234,29 @@
       color: var(--late);
     }
 
+    .minutes-input {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .minutes-input input {
+      width: 70px;
+      background: var(--bg);
+      border: 1px solid var(--late);
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .minutes-input span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
     .save-indicator {
       font-size: 12px;
       color: var(--present);
@@ -266,10 +285,7 @@
       z-index: 100;
     }
 
-    .save-all-bar span {
-      font-size: 14px;
-      color: var(--muted);
-    }
+    .save-all-bar span { font-size: 14px; color: var(--muted); }
 
     .btn-save-all {
       background: var(--accent);
@@ -287,14 +303,7 @@
     .btn-save-all:hover { opacity: 0.9; }
     .btn-save-all:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .loading {
-      text-align: center;
-      color: var(--muted);
-      padding: 60px;
-      font-size: 14px;
-    }
-
-    .empty {
+    .loading, .empty {
       text-align: center;
       color: var(--muted);
       padding: 60px;
@@ -351,14 +360,13 @@
 
     document.getElementById('navUser').textContent = sessionStorage.getItem('username') || ''
 
-    // Sätt dagens datum som default
     const datePicker = document.getElementById('datePicker')
     datePicker.value = new Date().toISOString().split('T')[0]
     datePicker.addEventListener('change', loadPupils)
 
     let allPupils = []
     let teachers = []
-    let attendanceMap = {}   // pupil_id → status
+    let attendanceMap = {}  // pupil_id → { status, minutes_late }
     let selectedClass = 'all'
 
     async function loadPupils() {
@@ -375,13 +383,11 @@
         allPupils = pupils
         teachers = teacherList
 
-        // Bygg map över befintlig närvaro
         attendanceMap = {}
         for (const a of existing) {
-          attendanceMap[a.pupil_id] = a.status
+          attendanceMap[a.pupil_id] = { status: a.status, minutes_late: a.minutes_late || null }
         }
 
-        // Bygg klassfilter
         const classes = [...new Set(pupils.map(p => p.class))].sort()
         const filtersEl = document.getElementById('classFilters')
         filtersEl.innerHTML = `<button class="filter-btn active" onclick="filterClass('all', this)">Alla</button>`
@@ -412,6 +418,9 @@
 
       document.getElementById('pupilsList').innerHTML = filtered.map((p, i) => {
         const current = attendanceMap[p.id] || null
+        const currentStatus = current?.status || null
+        const currentMinutes = current?.minutes_late || ''
+
         return `
           <div class="pupil-row ${current ? 'saved' : ''}" id="row-${p.id}" style="animation-delay:${i * 0.04}s">
             <div class="pupil-info">
@@ -419,12 +428,23 @@
               <span class="pupil-class">${p.class}</span>
             </div>
             <div class="status-btns">
-              <button class="status-btn present ${current === 'present' ? 'selected' : ''}"
+              <button class="status-btn present ${currentStatus === 'present' ? 'selected' : ''}"
                 onclick="selectStatus('${p.id}', 'present', this)">Närvarande</button>
-              <button class="status-btn late ${current === 'late' ? 'selected' : ''}"
+              <button class="status-btn late ${currentStatus === 'late' ? 'selected' : ''}"
                 onclick="selectStatus('${p.id}', 'late', this)">Sent</button>
-              <button class="status-btn absent ${current === 'absent' ? 'selected' : ''}"
+              <button class="status-btn absent ${currentStatus === 'absent' ? 'selected' : ''}"
                 onclick="selectStatus('${p.id}', 'absent', this)">Frånvarande</button>
+            </div>
+            <div class="minutes-input" id="minutes-${p.id}" style="display:${currentStatus === 'late' ? 'flex' : 'none'}">
+              <input
+                type="number"
+                min="1"
+                max="60"
+                placeholder="min"
+                value="${currentMinutes}"
+                onchange="setMinutes('${p.id}', this.value)"
+              />
+              <span>min sent</span>
             </div>
             <div class="save-indicator ${current ? 'show' : ''}" id="ind-${p.id}">✓ Sparat</div>
           </div>
@@ -442,13 +462,28 @@
     }
 
     window.selectStatus = function(pupilId, status, btn) {
-      // Uppdatera UI
       const row = document.getElementById(`row-${pupilId}`)
       row.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected'))
       btn.classList.add('selected')
 
-      attendanceMap[pupilId] = status
+      attendanceMap[pupilId] = { status, minutes_late: attendanceMap[pupilId]?.minutes_late || null }
+
+      const minutesEl = document.getElementById(`minutes-${pupilId}`)
+      if (status === 'late') {
+        minutesEl.style.display = 'flex'
+      } else {
+        minutesEl.style.display = 'none'
+        minutesEl.querySelector('input').value = ''
+        attendanceMap[pupilId].minutes_late = null
+      }
+
       updateSaveStatus()
+    }
+
+    window.setMinutes = function(pupilId, value) {
+      if (attendanceMap[pupilId]) {
+        attendanceMap[pupilId].minutes_late = parseInt(value) || null
+      }
     }
 
     function updateSaveStatus() {
@@ -461,23 +496,22 @@
     window.saveAll = async function() {
       const date = datePicker.value
       const btn = document.getElementById('saveAllBtn')
-      const teacher = teachers[0] // Använd första läraren
+      const teacher = teachers[0]
 
       btn.disabled = true
       btn.textContent = 'Sparar...'
 
       try {
-        const promises = Object.entries(attendanceMap).map(([pupil_id, status]) =>
-          markAttendance(pupil_id, teacher?.id, date, status)
+        const promises = Object.entries(attendanceMap).map(([pupil_id, val]) =>
+          markAttendance(pupil_id, teacher?.id, date, val.status, val.minutes_late)
         )
         await Promise.all(promises)
 
-        // Visa sparat på alla rader
         Object.keys(attendanceMap).forEach(id => {
           const ind = document.getElementById(`ind-${id}`)
           const row = document.getElementById(`row-${id}`)
-          if (ind) { ind.classList.add('show') }
-          if (row) { row.classList.add('saved') }
+          if (ind) ind.classList.add('show')
+          if (row) row.classList.add('saved')
         })
 
         btn.textContent = '✓ Sparat!'
